@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "GreenRoof",
+			"path": "../../../Documents/PlatformIO/Projects/GreenRoof"
+		}
+	],
+	"settings": {}
+}

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<!-- 📱 MOBILE SUPPORT -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>🌱 Irrigation Control</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 20px;
+        background: #f4f6f8;
+    }
+
+    h1 {
+        margin-top: 20px;
+        font-size: 24px;
+    }
+
+    #status {
+        font-size: 16px;
+        margin: 20px 0;
+        font-weight: bold;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+        margin-top: 30px;
+    }
+
+    .toggle-box {
+        width: 90%;
+        max-width: 300px;
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transition: 0.3s;
+    }
+
+    .label {
+        font-size: 20px;
+        margin-bottom: 15px;
+    }
+
+    /* 🔥 TOGGLE SWITCH */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 80px;
+        height: 45px;
+    }
+
+    .switch input {
+        display: none;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        border-radius: 45px;
+        transition: 0.3s;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 37px;
+        width: 37px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        border-radius: 50%;
+        transition: 0.3s;
+    }
+
+    input:checked + .slider {
+        background-color: #4CAF50;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(35px);
+    }
+
+    /* 🔒 DISABLED STATE */
+    .disabled {
+        opacity: 0.4;
+        pointer-events: none;
+    }
+
+</style>
+</head>
+
+<body>
+
+<h1>🌱 Irrigation Control</h1>
+
+<div id="status">🔄 Connecting...</div>
+
+<div class="container">
+
+    <!-- Pump -->
+    <div class="toggle-box disabled" id="pumpBox">
+        <div class="label">💧 Pump</div>
+        <label class="switch">
+            <input type="checkbox" id="pumpToggle" onchange="togglePump(this)" disabled>
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <!-- Valve -->
+    <div class="toggle-box disabled" id="valveBox">
+        <div class="label">🚰 Valve</div>
+        <label class="switch">
+            <input type="checkbox" id="valveToggle" onchange="toggleValve(this)" disabled>
+            <span class="slider"></span>
+        </label>
+    </div>
+
+</div>
+
+<script>
+let ws;
+
+const statusEl = document.getElementById("status");
+
+const pumpToggle = document.getElementById("pumpToggle");
+const valveToggle = document.getElementById("valveToggle");
+
+const pumpBox = document.getElementById("pumpBox");
+const valveBox = document.getElementById("valveBox");
+
+function connect() {
+    ws = new WebSocket("wss://alfatap.com/ws/");
+
+    ws.onopen = () => {
+        statusEl.innerText = "✅ Connected";
+
+        // 🔓 ENABLE UI
+        pumpToggle.disabled = false;
+        valveToggle.disabled = false;
+
+        pumpBox.classList.remove("disabled");
+        valveBox.classList.remove("disabled");
+
+        ws.send("status");
+    };
+
+    ws.onclose = () => {
+        statusEl.innerText = "❌ Disconnected (retrying...)";
+
+        disableUI();
+        setTimeout(connect, 2000);
+    };
+
+    ws.onerror = () => {
+        statusEl.innerText = "⚠️ Connection error";
+        disableUI();
+    };
+
+    ws.onmessage = (event) => {
+        const msg = event.data.trim();
+        console.log("📩", msg);
+
+        if (msg === "PUMP:ON") pumpToggle.checked = true;
+        if (msg === "PUMP:OFF") pumpToggle.checked = false;
+
+        if (msg === "VALVE:ON") valveToggle.checked = true;
+        if (msg === "VALVE:OFF") valveToggle.checked = false;
+    };
+}
+
+function disableUI() {
+    pumpToggle.disabled = true;
+    valveToggle.disabled = true;
+
+    pumpBox.classList.add("disabled");
+    valveBox.classList.add("disabled");
+}
+
+function togglePump(el) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(el.checked ? "pump_on" : "pump_off");
+}
+
+function toggleValve(el) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(el.checked ? "valve_on" : "valve_off");
+}
+
+connect();
+</script>
+
+</body>
+</html>
